@@ -3,24 +3,38 @@
 
 module Main where
 
-import           Control.Monad          (replicateM_)
-import           Data.Vector            (Vector)
-import qualified Data.Vector            as Vector
-import           TensorFlow.Core        (Scalar (..), Tensor, Value,
-                                         encodeTensorData, feed)
-import           TensorFlow.GenOps.Core (square)
-import           TensorFlow.Minimize    (gradientDescent, minimizeWith)
-import           TensorFlow.Ops         (add, mul, placeholder, reduceSum, sub)
-import           TensorFlow.Session     (run, runSession, runWithFeeds)
-import           TensorFlow.Variable    (Variable, initializedVariable,
-                                         readValue)
+import           Control.Monad              (replicateM_)
+import           Control.Monad.IO.Class     (liftIO)
+import           Control.Monad.Trans.Either (runEitherT)
+import           Data.Vector                (Vector)
+import qualified Data.Vector                as Vector
+import           Iris
+import           TensorFlow.Core            (Scalar (..), Tensor, Value,
+                                             encodeTensorData, feed)
+import           TensorFlow.GenOps.Core     (square)
+import           TensorFlow.Minimize        (gradientDescent, minimizeWith)
+import           TensorFlow.Ops             (add, mul, placeholder, reduceSum,
+                                             sub)
+import           TensorFlow.Session         (run, runSession, runWithFeeds)
+import           TensorFlow.Variable        (Variable, initializedVariable,
+                                             readValue)
 
 main :: IO ()
 main = do
-  results <- basicExample
-      [1.0, 2.0, 3.0, 4.0]
-      [4.0, 9.0, 14.0, 19.0]
-  print results
+  let irisFeatures = 4
+      irisLabels = 3
+      sampleSize = 10
+  result <- runEitherT $ do
+    trainRecords <- readIrisFromFile "data/iris_train.csv"
+    testRecords <- readIrisFromFile "data/iris_test.csv"
+    liftIO $ runIris sampleSize irisFeatures irisLabels trainRecords testRecords
+  case result of
+    Left err -> putStrLn err
+    Right r -> pure ()
+  -- results <- basicExample
+  --     [1.0, 2.0, 3.0, 4.0]
+  --     [4.0, 9.0, 14.0, 19.0]
+  -- print results
 
 -- Taking two vectors (should be of equal length) and learn the outputs
 -- for a linear equation
